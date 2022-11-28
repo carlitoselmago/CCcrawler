@@ -1,4 +1,4 @@
-from CCcrawler.CCcrawler import CCcrawler
+from CCcrawler import CCcrawler
 
 # prepare files
 
@@ -7,9 +7,9 @@ from CCcrawler.CCcrawler import CCcrawler
 
 CCc=CCcrawler()
 
-CCc.compose('@SERIES/BLACKMIRROR "laugh"')
+CCc.compose("E:/TRABAJO/videos irena/footage", "no")
 
-#print CCc.getSource("SERIES/BLACKMIRROR")
+#print (CCc.getSource("E:/TRABAJO/videos irena/footage"))
 
 """
 

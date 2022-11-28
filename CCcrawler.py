@@ -2,8 +2,9 @@ import re
 from moviepy.editor import *
 import sys
 import os
-import ConfigParser
+import configparser
 from os.path import join
+import glob
 
 class CCcrawler():
     
@@ -14,13 +15,14 @@ class CCcrawler():
     #sourceVideoFileLocation="/home/haxoorx/Downloads/Dexter.S03.Season.3.1080p.5.1Ch.BluRay.ReEnc-DeeJayAhmed/Dexter.S03E01.1080p.5.1Ch.BluRay.ReEnc-DeeJayAhmed.mkv"
     
     def __init__(self):
-        print "CCcrawler init"
-        self.Config = ConfigParser.ConfigParser()
+        print ("CCcrawler init")
+        self.Config = configparser.ConfigParser()
         self.Config.read("config.ini")
         self.folderSettings=self.ConfigSectionMap("folders")
     
-    def compose(self,formula):
+    def compose(self,folder,search):
         
+        """
         #fragment formula
         SOURCES=formula.split("@")
         
@@ -38,24 +40,27 @@ class CCcrawler():
                         
                         self.processFile(episode,search)
             
-            
+        """
+        for f in self.getSource(folder):
+
+            self.processFile(f,[search])
         #create video output
         final_clip = concatenate_videoclips(self.clips)
-        final_clip.write_videofile("/home/haxoorx/Downloads/compilations/"+formula+".mp4",bitrate='3000k')#,audio=False)
+        final_clip.write_videofile('E:/TRABAJO/videos irena/footage/supercuts/'+search+".mp4")#,bitrate='3000k')#,audio=False)
 
 
     
     def getSource(self,name):
-        
+        return glob.glob(name+"/*.srt")
         #return list of fileURIs
         files=[]
         
-        if name[-1:] is not "/":
+        if name[-1:] != "/":
             name+="/"
             
-        if name[0] is not "/":
+        if name[0] !=  "/":
             name="/"+name
-    
+        print(self.folderSettings["sources"]+name)
         dirs=self.getDirs(self.folderSettings["sources"]+name)
         for season in dirs:
             for fileList in self.getFiles(self.folderSettings["sources"]+name+"/"+season):
@@ -92,7 +97,7 @@ class CCcrawler():
         return dict1
     
     def createClip(self,videoUri,start,end):
-        print videoUri
+        print (videoUri)
         clip = VideoFileClip(videoUri).subclip(start,end)
         self.clips.append(clip)
         
@@ -105,7 +110,8 @@ class CCcrawler():
         return name
     
     def LoadFileIntoStringList(self,fileURI):
-        file = open(fileURI,"r")
+        print("LoadFileIntoStringList",fileURI)
+        file = open(fileURI,"r", encoding="utf8")
         string = file.read()
         lines=string.split('\n')
         return lines
@@ -116,7 +122,8 @@ class CCcrawler():
     
     
     def getVideoUriFromSrt(self,SRTUri):
-        videoUri=SRTUri.replace(".srt",".mkv")
+        videoUri=SRTUri.replace(".srt",".mp4")
+        #videoUri=SRTUri.replace(".srt",".mkv")
         return videoUri
     
     def createMatches(self,SRTUri, lines, search):
@@ -137,7 +144,7 @@ class CCcrawler():
                 for word in search:
 
                     if word.upper() in block["text"].upper():
-                        print "found",block
+                        print ("found",block)
                         videoURI=self.getVideoUriFromSrt(SRTUri)
                         self.createClip(videoURI,block["start"],block["end"])
                         founds+=1
@@ -151,7 +158,7 @@ class CCcrawler():
                 start=timeCodes[0].strip().replace(",",".")
                 end=timeCodes[1].strip().replace(",",".")
                 
-                print start,":::::::::::::::::"
+                print (start,":::::::::::::::::")
                 
             if line != "" and "-->" not in line and not line.strip().isdigit():
                 text+=line.rstrip()
