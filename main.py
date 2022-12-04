@@ -7,7 +7,12 @@ from CCcrawler import CCcrawler
 
 CCc=CCcrawler()
 
-CCc.compose("E:/TRABAJO/videos irena/footage", "no")
+#modes 
+# sentence: grabs the whole sentence in the timing
+# word: guesses the timing on sentence level (adding padding might help)
+# exact (with word level srt)
+
+CCc.compose("E:/TRABAJO/videos irena/footage", "mai",mode="word",padding=300)
 
 #print (CCc.getSource("E:/TRABAJO/videos irena/footage"))
 

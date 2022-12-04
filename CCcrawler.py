@@ -5,12 +5,16 @@ import os
 import configparser
 from os.path import join
 import glob
+import time
+from datetime import datetime, timedelta
 
 class CCcrawler():
     
     clips=[]
     founds=0
     block=False
+    timeformat="%H:%M:%S.%f"
+    padding=0
     
     #sourceVideoFileLocation="/home/haxoorx/Downloads/Dexter.S03.Season.3.1080p.5.1Ch.BluRay.ReEnc-DeeJayAhmed/Dexter.S03E01.1080p.5.1Ch.BluRay.ReEnc-DeeJayAhmed.mkv"
     
@@ -20,8 +24,8 @@ class CCcrawler():
         self.Config.read("config.ini")
         self.folderSettings=self.ConfigSectionMap("folders")
     
-    def compose(self,folder,search):
-        
+    def compose(self,folder,search,mode="sentence",padding=0):
+        self.padding=padding
         """
         #fragment formula
         SOURCES=formula.split("@")
@@ -43,7 +47,7 @@ class CCcrawler():
         """
         for f in self.getSource(folder):
 
-            self.processFile(f,[search])
+            self.processFile(f,[search],mode)
         #create video output
         final_clip = concatenate_videoclips(self.clips)
         final_clip.write_videofile('E:/TRABAJO/videos irena/footage/supercuts/'+search+".mp4")#,bitrate='3000k')#,audio=False)
@@ -116,9 +120,9 @@ class CCcrawler():
         lines=string.split('\n')
         return lines
         
-    def processFile(self,file,search):
+    def processFile(self,file,search,mode):
         lines = self.LoadFileIntoStringList(file)
-        self.createMatches(file,lines,search)
+        self.createMatches(file,lines,search,mode)
     
     
     def getVideoUriFromSrt(self,SRTUri):
@@ -126,7 +130,30 @@ class CCcrawler():
         #videoUri=SRTUri.replace(".srt",".mkv")
         return videoUri
     
-    def createMatches(self,SRTUri, lines, search):
+    def getWordBlock(self,block,search):
+        padding=50 #in milliseconds
+        #print(block)
+        words=block["text"].split(" ")
+        
+        duration=(datetime.strptime(block["end"],self.timeformat)-datetime.strptime(block["start"],self.timeformat)).total_seconds() * 1000
+        wlen=len(block["text"])
+        #print("wlen",wlen)
+        chartime=duration/wlen
+        start=block["text"].upper().index(search.upper())*chartime
+        end=(block["text"].upper().index(search.upper())+len(search))*chartime
+        print(start,end)
+        #print(duration,words,chartime,start,end)
+        newstart=datetime.strptime(block["start"],self.timeformat)+timedelta(milliseconds=(start-padding))
+        newend=datetime.strptime(block["start"],self.timeformat)+timedelta(milliseconds=(end+padding))
+        block["start"]=newstart.strftime(self.timeformat)
+        block["end"]=newend.strftime(self.timeformat)
+        #print(block)
+        #sys.exit()
+       
+        return block
+
+
+    def createMatches(self,SRTUri, lines, search,mode):
         
         # search is an array of strings to search
         
@@ -138,16 +165,29 @@ class CCcrawler():
         for line in lines:
             
             if line.strip().isdigit():
-
                 block={"text":text,"start":start,"end":end}
-
+                
                 for word in search:
+                    if mode=="exact":
+                        if (word.upper().strip()) == (block["text"].upper().strip()):
+                            print ("found",block)
+                            videoURI=self.getVideoUriFromSrt(SRTUri)
+                            self.createClip(videoURI,block["start"],block["end"])
+                            founds+=1
+                        
+                    else:
+                        if (" "+word.upper()+" ") in (" "+block["text"].upper()+" "):
+                            print ("found",block)
+                            if mode=="word":
+                                block=self.getWordBlock(block,search[0])
+                            
+                            videoURI=self.getVideoUriFromSrt(SRTUri)
 
-                    if word.upper() in block["text"].upper():
-                        print ("found",block)
-                        videoURI=self.getVideoUriFromSrt(SRTUri)
-                        self.createClip(videoURI,block["start"],block["end"])
-                        founds+=1
+                            start=(datetime.strptime(block["start"],self.timeformat)-timedelta(milliseconds=self.padding)).strftime(self.timeformat)
+                            end=(datetime.strptime(block["end"],self.timeformat)+timedelta(milliseconds=self.padding)).strftime(self.timeformat)
+
+                            self.createClip(videoURI,start,end)
+                            founds+=1
 
                 text=""
 
@@ -158,7 +198,7 @@ class CCcrawler():
                 start=timeCodes[0].strip().replace(",",".")
                 end=timeCodes[1].strip().replace(",",".")
                 
-                print (start,":::::::::::::::::")
+                #print (start,":::::::::::::::::")
                 
             if line != "" and "-->" not in line and not line.strip().isdigit():
                 text+=line.rstrip()
