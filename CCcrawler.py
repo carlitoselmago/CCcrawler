@@ -45,12 +45,15 @@ class CCcrawler():
                         self.processFile(episode,search)
             
         """
-        for f in self.getSource(folder):
+        srtfiles=self.getSource(folder)
 
-            self.processFile(f,[search],mode)
+        #for s in search:
+        #for f in self.getSource(folder):
+
+        self.processFile(srtfiles,search,mode)
         #create video output
         final_clip = concatenate_videoclips(self.clips)
-        final_clip.write_videofile('E:/TRABAJO/videos irena/footage/supercuts/'+search+".mp4")#,bitrate='3000k')#,audio=False)
+        final_clip.write_videofile('E:/TRABAJO/videos irena/footage/supercuts/'+("_".join(search))+".mp4")#,bitrate='3000k')#,audio=False)
 
 
     
@@ -120,9 +123,12 @@ class CCcrawler():
         lines=string.split('\n')
         return lines
         
-    def processFile(self,file,search,mode):
-        lines = self.LoadFileIntoStringList(file)
-        self.createMatches(file,lines,search,mode)
+    def processFile(self,files,search,mode):
+        lines=""
+       
+        lines = self.LoadFileIntoStringList(files[0])
+        
+        self.createMatches(files[0],lines,search,mode)
     
     
     def getVideoUriFromSrt(self,SRTUri):
@@ -152,7 +158,82 @@ class CCcrawler():
        
         return block
 
+    def createMatches(self,SRTUri, lines, search,mode):
+        
+        # search is an array of strings to search
+        
+        text=""
+        founds=0
+        start=False
+        end=False
+        print(search)
 
+        usedblocks=[]
+
+        matched=True
+
+        while matched:
+            matched=False
+            for word in search:
+                print("word",word)
+                for line in lines:
+                    
+                    if line.strip().isdigit():
+                        block={"text":text,"start":start,"end":end}
+                        blockO=block
+
+
+                        if mode=="exact":
+                            if (word.upper().strip()) == (block["text"].upper().strip()):
+                                if blockO not in usedblocks:
+                                    print ("found",word,block)
+                                    print("")
+                                    videoURI=self.getVideoUriFromSrt(SRTUri)
+                                    self.createClip(videoURI,block["start"],block["end"])
+                                    founds+=1
+                                    usedblocks.append(blockO)
+                                    matched=True
+                                    break
+                            
+                        else:
+                            if word.upper() in block["text"].upper():
+                            #if (" "+word.upper()+" ") in (" "+block["text"].upper()+" "):
+                                
+                                if blockO not in usedblocks:
+                                    print ("found",word,block)
+                                    print("")
+                                    if mode=="word":
+                                        block=self.getWordBlock(block,word)
+                                    
+                                
+                                    videoURI=self.getVideoUriFromSrt(SRTUri)
+                                    
+                                    startR=(datetime.strptime(block["start"],self.timeformat)-timedelta(milliseconds=self.padding)).strftime(self.timeformat)
+                                    endR=(datetime.strptime(block["end"],self.timeformat)+timedelta(milliseconds=self.padding)).strftime(self.timeformat)
+
+                                    self.createClip(videoURI,startR,endR)
+                                    founds+=1
+                                    usedblocks.append(blockO)
+                                    matched=True
+                                    break
+
+                        text=""
+
+
+                    if "-->" in line:
+
+                        timeCodes=line.split("-->")
+                        start=timeCodes[0].strip().replace(",",".")
+                        end=timeCodes[1].strip().replace(",",".")
+                        
+                        #print (start,":::::::::::::::::")
+                        
+                    if line != "" and "-->" not in line and not line.strip().isdigit():
+                        text+=line.rstrip()
+                    #print((usedblocks))
+
+    """
+    
     def createMatches(self,SRTUri, lines, search,mode):
         
         # search is an array of strings to search
@@ -170,16 +251,18 @@ class CCcrawler():
                 for word in search:
                     if mode=="exact":
                         if (word.upper().strip()) == (block["text"].upper().strip()):
-                            print ("found",block)
+                            print ("found",word,block)
+                            print("")
                             videoURI=self.getVideoUriFromSrt(SRTUri)
                             self.createClip(videoURI,block["start"],block["end"])
                             founds+=1
                         
                     else:
                         if (" "+word.upper()+" ") in (" "+block["text"].upper()+" "):
-                            print ("found",block)
+                            print ("found",word,block)
+                            print("")
                             if mode=="word":
-                                block=self.getWordBlock(block,search[0])
+                                block=self.getWordBlock(block,word)
                             
                             videoURI=self.getVideoUriFromSrt(SRTUri)
 
@@ -202,5 +285,5 @@ class CCcrawler():
                 
             if line != "" and "-->" not in line and not line.strip().isdigit():
                 text+=line.rstrip()
-
+        """
    

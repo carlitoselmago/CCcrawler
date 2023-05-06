@@ -12,7 +12,7 @@ CCc=CCcrawler()
 # word: guesses the timing on sentence level (adding padding might help)
 # exact (with word level srt)
 
-CCc.compose("E:/TRABAJO/videos irena/footage", "mai",mode="word",padding=300)
+CCc.compose("E:/TRABAJO/videos irena/footage", [" dit"],mode="sentence",padding=3200)
 
 #print (CCc.getSource("E:/TRABAJO/videos irena/footage"))
 
